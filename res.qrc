@@ -1,0 +1,44 @@
+<RCC>
+    <qresource prefix="/icons">
+        <file>addText.png</file>
+        <file>bed.png</file>
+        <file>bed_enabled.png</file>
+        <file>chair.png</file>
+        <file>chair_enabled.png</file>
+        <file>clear.png</file>
+        <file>desk.png</file>
+        <file>desk_enabled.png</file>
+        <file>door.png</file>
+        <file>door_enabled.png</file>
+        <file>erase_action.png</file>
+        <file>erase_action_enabled.png</file>
+        <file>fromXml.png</file>
+        <file>fromXml_enabled.png</file>
+        <file>help.png</file>
+        <file>move_action.png</file>
+        <file>move_action_enabled.png</file>
+        <file>properties.png</file>
+        <file>properties_enabled.png</file>
+        <file>save_as.png</file>
+        <file>toPdf.png</file>
+        <file>toPng.png</file>
+        <file>toXml.png</file>
+        <file>toXml_enabled.png</file>
+        <file>undo.png</file>
+        <file>wall.png</file>
+        <file>wall_enabled.png</file>
+        <file>window.png</file>
+        <file>window_enabled.png</file>
+        <file>redo.png</file>
+        <file>piano.png</file>
+        <file>piano_enabled.png</file>
+        <file>wardrobe.png</file>
+        <file>wardrobe_enabled.png</file>
+    </qresource>
+    <qresource prefix="/cursors">
+        <file>move_cursor_selected.png</file>
+        <file>pointer_cursor.png</file>
+        <file>pointer_cursor_hovered.png</file>
+        <file>pointer_cursor_erasing.png</file>
+    </qresource>
+</RCC>
