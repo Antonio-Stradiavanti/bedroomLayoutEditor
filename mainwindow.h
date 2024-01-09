@@ -11,6 +11,7 @@
 #include <QPushButton>
 #include <QComboBox>
 #include <QDoubleSpinBox>
+#include <QLineEdit>
 #include <QColorDialog>
 
 #include <QFrame>
@@ -48,6 +49,8 @@ public slots:
     void on_updateInfoSignal(QString);
     void on_updateFileNameSignal(QString);
 
+    void on_sendScannedItem(BedroomFurnitureItem*);
+
 private slots:
     void on_editPropertiesAction_triggered();
 
@@ -76,12 +79,17 @@ private slots:
     void on_saveAsAction_triggered();
     // Глобальные свойства
     void on_saveGlobalProperties();
-    void on_brushColorDialogButton();
-    void on_penColorDialogButton();
+    void on_brushGlobalColorDialogButton();
+    void on_penGlobalColorDialogButton();
     // Глобальные параметры
     void on_parametersListChanged(const QString&);
     void on_resetParameter();
     void on_saveParameter();
+    // Локальные параметры
+    void on_brushLocalColorDialogButton();
+    void on_penLocalColorDialogButton();
+    void on_resetLocalProperties();
+    void on_saveLocalProperties();
 
 private:
     /* Свойства */
@@ -94,41 +102,77 @@ private:
     QWidget* sidePanel;
     QVBoxLayout* groupBoxLayout;
 
+    // ***
     QSize colorButtonSize;
+    QColor penColor;
+    QPixmap penColorButtonIcon;
+    QColor brushColor;
+    QPixmap brushColorButtonIcon;
+    // ***
     // Глобальные свойства
     QGroupBox* globalProperties;
     QVBoxLayout* globalPropertiesLayout;
     // Кисть
-    QHBoxLayout* brushColorLayout;
-    QLabel* brushColorLabel;
-    QColor brushColor;
-    QPixmap brushColorButtonIcon;
-    QPushButton* brushColorDialogButton;
+    QHBoxLayout* brushGlobalColorLayout;
+    QLabel* brushGlobalColorLabel;
+    QPushButton* brushGlobalColorDialogButton;
     // Перо
-    QHBoxLayout* penWidthLayout;
-    QLabel* penWidthLabel;
-    QSpinBox* penWidthValue;
-    QHBoxLayout* penColorLayout;
-    QLabel* penColorLabel;
-    QColor penColor;
-    QPixmap penColorButtonIcon;
-    QPushButton* penColorDialogButton;
-    QHBoxLayout* penLayout;
+    QHBoxLayout* penGlobalWidthLayout;
+    QLabel* penGlobalWidthLabel;
+    QSpinBox* penGlobalWidthValue;
+    QHBoxLayout* penGlobalColorLayout;
+    QLabel* penGLobalColorLabel;
+    //---
+    QPushButton* penGlobalColorDialogButton;
+    QHBoxLayout* penGlobalLayout;
     QPushButton* saveGlobalProperties;
     // Параметры
     QGroupBox* parameters;
     QHBoxLayout* parametersHorLayout;
-    QHBoxLayout* buttonsHorLayout;
+    QHBoxLayout* buttonsParamHorLayout;
     QVBoxLayout* parametersVerLayout;
     QComboBox* parametersListMenu; QDoubleSpinBox* parameterValue;
     QList<QString> parametersList;
     QPushButton* saveParameterButton;
     QPushButton* resetParameterButton;
     // Свойства элемента схемы
-    QGroupBox* localProperties;
-    QVBoxLayout* localPropertiesLayout;
-    QLabel placeholder;
-    // ---
+    BedroomFurnitureItem* itemHandler;
+    QGroupBox* localPropertiesDefault;
+    QGroupBox* localPropertiesSelected;
+    QVBoxLayout* localPropertiesLayoutDefault;
+    QVBoxLayout* localPropertiesLayoutSelected;
+    QLabel* placeholder;
+    //---
+    // Кисть
+    QHBoxLayout* brushLocalColorLayout;
+    QLabel* brushLocalColorLabel;
+    QPushButton* brushLocalColorDialogButton;
+    // Перо
+    QHBoxLayout* penLocalWidthLayout;
+    QLabel* penLocalWidthLabel;
+    QSpinBox* penLocalWidthValue;
+    QHBoxLayout* penLocalColorLayout;
+    QLabel* penGLocalColorLabel;
+    QPushButton* penLocalColorDialogButton;
+    QHBoxLayout* penLocalLayout;
+    //---
+    QHBoxLayout* coordinatesHorLayout;
+    QLabel* coordinatesLabel;
+    QLineEdit* coordinatesValue;
+    // Смещение
+    QHBoxLayout* shiftHorLayout;
+    QLabel* shiftLabel;
+    QDoubleSpinBox* dxValue;
+    QDoubleSpinBox* dyValue;
+    // Масштаб
+    QHBoxLayout* scaleHorLayout;
+    QLabel* scaleLabel;
+    QDoubleSpinBox* scaleValue;
+    // Кнопки
+    QHBoxLayout* buttonsLocalHorLayout;
+    QPushButton* resetLocalProperties;
+    QPushButton* saveLocalProperties;
+    //---
     GraphicsView* view;
     GraphicsScene* scene;
 

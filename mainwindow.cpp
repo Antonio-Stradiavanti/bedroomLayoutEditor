@@ -22,6 +22,9 @@ MainWindow::MainWindow(QWidget *parent)
         QIcon(":/icons/wardrobe.png"), QIcon(":/icons/wardrobe_enabled.png")
 
       }
+
+    , itemHandler{nullptr}
+
     , m_erasing{false}
 
     , curFileName{"*буфер*"}
@@ -54,49 +57,50 @@ MainWindow::MainWindow(QWidget *parent)
     globalProperties = new QGroupBox("Глобальные свойства");
     globalPropertiesLayout = new QVBoxLayout(globalProperties);
     // Кисть
-    brushColorLayout = new QHBoxLayout();
-    brushColorLabel = new QLabel("Цвет заливки");
+    brushGlobalColorLayout = new QHBoxLayout();
+    brushGlobalColorLabel = new QLabel("Глобальный цвет заливки");
     colorButtonSize = QSize(24, 24);
     brushColorButtonIcon = QPixmap(colorButtonSize);
     brushColor = BedroomFurnitureItem::getGlobalBrush().color();
     brushColorButtonIcon.fill(brushColor);
-    brushColorDialogButton = new QPushButton(
+    brushGlobalColorDialogButton = new QPushButton(
         QIcon(brushColorButtonIcon),
         ""
         );
-    brushColorDialogButton->setFixedSize(colorButtonSize);
-    brushColorLayout->addWidget(brushColorLabel);
-    brushColorLayout->addWidget(brushColorDialogButton);
+    brushGlobalColorDialogButton->setFixedSize(colorButtonSize);
+    brushGlobalColorLayout->addWidget(brushGlobalColorLabel);
+    brushGlobalColorLayout->addWidget(brushGlobalColorDialogButton);
     // Перо
-    penLayout = new QHBoxLayout();
-    penColorLayout = new QHBoxLayout();
-    penWidthLayout = new QHBoxLayout();
-    penColorLabel = new QLabel("Цвет обводки");
+    penGlobalLayout = new QHBoxLayout();
+    penGlobalColorLayout = new QHBoxLayout();
+    penGlobalWidthLayout = new QHBoxLayout();
+    penGLobalColorLabel = new QLabel("Глобальный Цвет обводки");
     penColorButtonIcon = QPixmap(colorButtonSize);
     penColor = BedroomFurnitureItem::getGlobalPen().color();
     penColorButtonIcon.fill(penColor);
-    penColorDialogButton = new QPushButton(
+    penGlobalColorDialogButton = new QPushButton(
         QIcon(penColorButtonIcon),
         ""
         );
-    penColorDialogButton->setFixedSize(colorButtonSize);
-    penColorLayout->addWidget(penColorLabel);
-    penColorLayout->addWidget(penColorDialogButton);
+    penGlobalColorDialogButton->setFixedSize(colorButtonSize);
+    penGlobalColorLayout->addWidget(penGLobalColorLabel);
+    penGlobalColorLayout->addWidget(penGlobalColorDialogButton);
     //---
-    penWidthLabel = new QLabel("Толщина обводки");
-    penWidthValue = new QSpinBox();
-    penWidthValue->setMinimum(1);
-    penWidthValue->setMaximum(10);
-    penWidthLayout->addWidget(penWidthLabel);
-    penWidthLayout->addWidget(penWidthValue);
+    penGlobalWidthLabel = new QLabel("Глобальня толщина обводки");
+    penGlobalWidthValue = new QSpinBox();
+    penGlobalWidthValue->setMinimum(1);
+    penGlobalWidthValue->setMaximum(10);
+    penGlobalWidthValue->setValue(BedroomFurnitureItem::getGlobalPen().width());
+    penGlobalWidthLayout->addWidget(penGlobalWidthLabel);
+    penGlobalWidthLayout->addWidget(penGlobalWidthValue);
     //---
-    penLayout->addLayout(penColorLayout);
-    penLayout->addLayout(penWidthLayout);
+    penGlobalLayout->addLayout(penGlobalColorLayout);
+    penGlobalLayout->addLayout(penGlobalWidthLayout);
     //---
     saveGlobalProperties = new QPushButton("Сохранить изменения");
     //---
-    globalPropertiesLayout->addLayout(brushColorLayout);
-    globalPropertiesLayout->addLayout(penLayout);
+    globalPropertiesLayout->addLayout(brushGlobalColorLayout);
+    globalPropertiesLayout->addLayout(penGlobalLayout);
     globalPropertiesLayout->addWidget(saveGlobalProperties);
     //---
     /* Настраиваю панель настройки глобальных параметров */
@@ -127,23 +131,109 @@ MainWindow::MainWindow(QWidget *parent)
     parametersHorLayout->addWidget(parametersListMenu, 2);
     parametersHorLayout->addWidget(parameterValue, 1);
     // Будет содержать кнопку и меню позв изменить значения параметров.
-    buttonsHorLayout = new QHBoxLayout();
+    buttonsParamHorLayout = new QHBoxLayout();
     saveParameterButton = new QPushButton("Сохранить изменения");
     resetParameterButton = new QPushButton("Сбросить значение параметра");
-    buttonsHorLayout->addWidget(resetParameterButton);
-    buttonsHorLayout->addWidget(saveParameterButton);
+    buttonsParamHorLayout->addWidget(resetParameterButton);
+    buttonsParamHorLayout->addWidget(saveParameterButton);
     // Устанавливаю все layout
     parametersVerLayout = new QVBoxLayout(parameters);
     parametersVerLayout->addLayout(parametersHorLayout);
-    parametersVerLayout->addLayout(buttonsHorLayout);
+    parametersVerLayout->addLayout(buttonsParamHorLayout);
+    /* Настраиваю локальные свойства элемента */
+    // Если элемент не выбран
+    localPropertiesDefault = new QGroupBox("Свойства определенного элемента схемы");
+    localPropertiesLayoutDefault = new QVBoxLayout(localPropertiesDefault);
+    placeholder = new QLabel("Чтобы отобразить свойства графического элемента щелкните по нему левой кнопкой мыши");
+    localPropertiesLayoutDefault->addWidget(placeholder);
+    // Если элемент выбран
+    localPropertiesSelected = new QGroupBox("Свойства определенного элемента схемы");
     //---
-    localProperties = new QGroupBox("Свойства определенного элемента схемы");
+    localPropertiesLayoutSelected = new QVBoxLayout(localPropertiesSelected);
+    // Кисти и перья
+    brushLocalColorLayout = new QHBoxLayout();
+    brushLocalColorLabel = new QLabel("Цвет заливки");
+    brushLocalColorDialogButton = new QPushButton("");
+    brushLocalColorDialogButton->setFixedSize(colorButtonSize);
+    //---
+    penLocalWidthLayout = new QHBoxLayout();
+    penLocalWidthLabel = new QLabel("Толщина обводки");
+    penLocalWidthValue = new QSpinBox();
+    penLocalWidthValue->setMinimum(1);
+    penLocalWidthValue->setMaximum(10);
+    //---
+    penLocalColorLayout = new QHBoxLayout();
+    brushLocalColorLabel = new QLabel("Цвет обводки");
+    penLocalColorDialogButton = new QPushButton("");
+    penLocalColorDialogButton->setFixedSize(colorButtonSize);
+    // Работа с системой координат
+    coordinatesHorLayout = new QHBoxLayout();
+    coordinatesLabel = new QLabel("Координаты");
+    coordinatesValue = new QLineEdit();
+    coordinatesValue->setReadOnly(true);
+    // Смещение
+    shiftHorLayout = new QHBoxLayout();
+    shiftLabel = new QLabel("Смещение");
+    dxValue = new QDoubleSpinBox();
+    dyValue = new QDoubleSpinBox();
+    dxValue->setMinimum(0.0);
+    dxValue->setMaximum(1000.0);
+    dxValue->setSingleStep(0.1);
 
+    dyValue->setMinimum(0.0);
+    dyValue->setMaximum(1000.0);
+    dyValue->setSingleStep(0.1);
+    // Масштаб (дополнительно настраивать не нужно)
+    scaleHorLayout = new QHBoxLayout();
+    scaleLabel = new QLabel("Масштаб");
+    scaleValue = new QDoubleSpinBox();
+    scaleValue->setMinimum(0.0);
+    scaleValue->setMaximum(2.0);
+    scaleValue->setValue(1.0);
+    scaleValue->setSingleStep(0.1);
+    // Кнопки
+    buttonsLocalHorLayout = new QHBoxLayout();
+    resetLocalProperties = new QPushButton("Оставить все как есть");
+    saveLocalProperties = new QPushButton("Сохранить изменения");
+    /* --- */
+    // Кисти и перья
+    brushLocalColorLayout->addWidget(brushLocalColorLabel);
+    brushLocalColorLayout->addWidget(brushLocalColorDialogButton);
+    //---
+    penLocalWidthLayout->addWidget(penLocalWidthLabel);
+    penLocalWidthLayout->addWidget(penLocalWidthValue);
+    //---
+    penLocalColorLayout->addWidget(brushLocalColorLabel);
+    penLocalColorLayout->addWidget(penLocalColorDialogButton);
+    // Работа с системой координат
+    coordinatesHorLayout->addWidget(coordinatesLabel);
+    coordinatesHorLayout->addWidget(coordinatesValue);
+    // Смещение
+    shiftHorLayout->addWidget(shiftLabel, 2);
+    shiftHorLayout->addWidget(dxValue, 1);
+    shiftHorLayout->addWidget(dyValue, 1);
+    // Масштаб
+    scaleHorLayout->addWidget(scaleLabel);
+    scaleHorLayout->addWidget(scaleValue);
+    // Кнопки
+    buttonsLocalHorLayout->addWidget(resetLocalProperties);
+    buttonsLocalHorLayout->addWidget(saveLocalProperties);
+    //---
+    localPropertiesLayoutSelected->addLayout(brushLocalColorLayout);
+    localPropertiesLayoutSelected->addLayout(penLocalWidthLayout);
+    localPropertiesLayoutSelected->addLayout(penLocalColorLayout);
+    localPropertiesLayoutSelected->addLayout(coordinatesHorLayout);
+    localPropertiesLayoutSelected->addLayout(shiftHorLayout);
+    localPropertiesLayoutSelected->addLayout(scaleHorLayout);
+    localPropertiesLayoutSelected->addLayout(buttonsLocalHorLayout);
+    //---
     groupBoxLayout->addWidget(globalProperties);
     groupBoxLayout->addWidget(parameters);
-    groupBoxLayout->addWidget(localProperties);
-
-
+    groupBoxLayout->addWidget(localPropertiesDefault);
+    groupBoxLayout->addWidget(localPropertiesSelected);
+    //---
+    localPropertiesDefault->setVisible(true);
+    localPropertiesSelected->setVisible(false);
     /* Связь сигнала и слота */
     connect(scene, &GraphicsScene::drawnWall, this, &MainWindow::on_drawnWall);
     connect(scene, &GraphicsScene::drawnWindow, this, &MainWindow::on_drawnWindow);
@@ -167,13 +257,19 @@ MainWindow::MainWindow(QWidget *parent)
 
     /* Боковая панель */
     // Глобальные свойства
-    connect(brushColorDialogButton, &QPushButton::clicked, this, &MainWindow::on_brushColorDialogButton);
-    connect(penColorDialogButton, &QPushButton::clicked, this, &MainWindow::on_penColorDialogButton);
+    connect(brushGlobalColorDialogButton, &QPushButton::clicked, this, &MainWindow::on_brushGlobalColorDialogButton);
+    connect(penGlobalColorDialogButton, &QPushButton::clicked, this, &MainWindow::on_penGlobalColorDialogButton);
     connect(saveGlobalProperties, &QPushButton::clicked, this, &MainWindow::on_saveGlobalProperties);
     // Глобальные параметры
     connect(parametersListMenu, &QComboBox::currentTextChanged, this, &MainWindow::on_parametersListChanged);
     connect(saveParameterButton, &QPushButton::clicked, this, &MainWindow::on_saveParameter);
     connect(resetParameterButton, &QPushButton::clicked, this, &MainWindow::on_resetParameter);
+    // Локальные свойства
+    connect(scene, &GraphicsScene::sendScannedItem, this, &MainWindow::on_sendScannedItem);
+    connect(brushLocalColorDialogButton, &QPushButton::clicked, this, &MainWindow::on_brushLocalColorDialogButton);
+    connect(penLocalColorDialogButton, &QPushButton::clicked, this, &MainWindow::on_penLocalColorDialogButton);
+    connect(resetLocalProperties, &QPushButton::clicked, this, &MainWindow::on_resetLocalProperties);
+    connect(saveLocalProperties, &QPushButton::clicked, this, &MainWindow::on_saveLocalProperties);
     /* Панель инструментов */
     QWidget* empty = new QWidget();
     empty->setSizePolicy(QSizePolicy::Expanding,QSizePolicy::Preferred);
@@ -191,7 +287,7 @@ MainWindow::~MainWindow()
     delete scene;
 
     delete globalProperties;
-    delete localProperties;
+    delete localPropertiesDefault;
     delete parameters;
 
 }
@@ -456,27 +552,27 @@ void MainWindow::on_updateFileNameSignal(QString fileName)
 }
 /* Боковая панель */
 // Глобальные свойства
-void MainWindow::on_brushColorDialogButton() {
-    QPalette palette  = brushColorDialogButton->palette();
+void MainWindow::on_brushGlobalColorDialogButton() {
+    QPalette palette  = brushGlobalColorDialogButton->palette();
     QColor color = palette.color(QPalette::Button);
     QColor tmpColor = QColorDialog::getColor(color, this);
     if (tmpColor.isValid()) {
         brushColor = tmpColor;
         brushColorButtonIcon.fill(brushColor);
-        brushColorDialogButton->setIcon(
+        brushGlobalColorDialogButton->setIcon(
             QIcon(brushColorButtonIcon)
             );
     }
 }
 
-void MainWindow::on_penColorDialogButton() {
-    QPalette palette  = penColorDialogButton->palette();
+void MainWindow::on_penGlobalColorDialogButton() {
+    QPalette palette  = penGlobalColorDialogButton->palette();
     QColor color = palette.color(QPalette::Button);
     QColor tmpColor = QColorDialog::getColor(color, this);
     if (tmpColor.isValid()) {
         penColor = tmpColor;
         penColorButtonIcon.fill(penColor);
-        penColorDialogButton->setIcon(
+        penGlobalColorDialogButton->setIcon(
             QIcon(penColorButtonIcon)
             );
     }
@@ -487,12 +583,13 @@ void MainWindow::on_saveGlobalProperties() {
         QBrush(brushColor)
     );
     BedroomFurnitureItem::setGlobalPen(
-        QPen(penColor, penWidthValue->value())
+        QPen(penColor, penGlobalWidthValue->value())
     );
     scene->update();
 }
 // Глобальные параметры
-void MainWindow::on_parametersListChanged(const QString& text) {
+void MainWindow::on_parametersListChanged(const QString& text)
+{
     if (text == parametersList[0]) {
         parameterValue->setValue(WallTypeItem::getParameter());
     }
@@ -512,10 +609,12 @@ void MainWindow::on_parametersListChanged(const QString& text) {
         parameterValue->setValue(WardrobeItem::getParameter());
     }
 }
-void MainWindow::on_resetParameter() {
+void MainWindow::on_resetParameter()
+{
     on_parametersListChanged(parametersListMenu->currentText());
 }
-void MainWindow::on_saveParameter() {
+void MainWindow::on_saveParameter()
+{
     QString text = parametersListMenu->currentText();
     if (text == parametersList[0]) {
         scene->setWallTypeParameter(parameterValue->value());
@@ -535,4 +634,91 @@ void MainWindow::on_saveParameter() {
     else if (text == parametersList[5]) {
         scene->setWardrobeParameter(parameterValue->value());
     }
+}
+// Локальные параметры
+void MainWindow::on_sendScannedItem(BedroomFurnitureItem* item)
+{
+    if (item) {
+        itemHandler = item;
+        // Кисть
+        brushColor = item->getBrush().color();
+        brushColorButtonIcon.fill(brushColor);
+        brushLocalColorDialogButton->setIcon(
+            QIcon(brushColorButtonIcon)
+            );
+        // Перо
+        penColor = item->getPen().color();
+        penColorButtonIcon.fill(penColor);
+        penLocalColorDialogButton->setIcon(
+            QIcon(penColorButtonIcon)
+            );
+        penLocalWidthValue->setValue(item->getPen().width());
+        // Координаты
+        coordinatesValue->setText(
+            "x=" + QString::number(item->getRectTopLeft().x()) + ", "
+                                                                 "y=" + QString::number(item->getRectTopLeft().y())
+            );
+        localPropertiesDefault->setVisible(false);
+        localPropertiesSelected->setVisible(true);
+        on_updateInfoSignal("Свойства элемента успешно загружены");
+    }
+}
+
+void MainWindow::on_brushLocalColorDialogButton()
+{
+    QPalette palette = brushLocalColorDialogButton->palette();
+    QColor color = palette.color(QPalette::Button);
+    QColor tmpColor = QColorDialog::getColor(color, this);
+    if (tmpColor.isValid()) {
+        brushColor = tmpColor;
+        brushColorButtonIcon.fill(brushColor);
+        brushLocalColorDialogButton->setIcon(
+            QIcon(brushColorButtonIcon)
+            );
+    }
+}
+
+void MainWindow::on_penLocalColorDialogButton()
+{
+    QPalette palette  = penLocalColorDialogButton->palette();
+    QColor color = palette.color(QPalette::Button);
+    QColor tmpColor = QColorDialog::getColor(color, this);
+    if (tmpColor.isValid()) {
+        penColor = tmpColor;
+        penColorButtonIcon.fill(penColor);
+        penLocalColorDialogButton->setIcon(
+            QIcon(penColorButtonIcon)
+            );
+    }
+}
+
+void MainWindow::on_resetLocalProperties()
+{
+    localPropertiesDefault->setVisible(true);
+    localPropertiesSelected->setVisible(false);
+    itemHandler = nullptr;
+    on_updateInfoSignal("Свойства элемента не изменились");
+}
+
+void MainWindow::on_saveLocalProperties()
+{
+    if (itemHandler) {
+        itemHandler->setBrush(
+            QBrush(brushColor)
+            );
+        itemHandler->setUsedBrush(BedroomFurnitureItem::UsingBrush::Local);
+        itemHandler->setPen(
+            QPen(penColor, penLocalWidthValue->value())
+            );
+        itemHandler->setUsedPen(BedroomFurnitureItem::UsingPen::Local);
+        itemHandler->moveBy(dxValue->value(), dyValue->value());
+        itemHandler->setScale(scaleValue->value());
+        itemHandler = nullptr;
+        on_updateInfoSignal("Свойства элемента успешно изменены");
+    }
+    else {
+       on_updateInfoSignal("itemHandler равен nullptr");
+    }
+    localPropertiesDefault->setVisible(true);
+    localPropertiesSelected->setVisible(false);
 }

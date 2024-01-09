@@ -26,6 +26,7 @@ public:
         , m_rotate{false}
 
         , g{nullptr}
+        , scannedItem{nullptr}
 
         /* Флаги */
         , m_element{BedroomFurniture::None}
@@ -268,6 +269,7 @@ public:
             else if (m_erasing && g) {
                 disconnect(g, &BedroomFurnitureItem::enterHover, this, &GraphicsScene::on_enterHover);
                 disconnect(g, &BedroomFurnitureItem::leaveHover, this, &GraphicsScene::on_leaveHover);
+                disconnect(g, &BedroomFurnitureItem::scanItemSignal, this, &GraphicsScene::on_scanItemSignal);
                 disconnect(this, &GraphicsScene::erasingSignal, g, &BedroomFurnitureItem::on_erasingSignal);
                 disconnect(this, &GraphicsScene::erasedSignal, g, &BedroomFurnitureItem::on_erasedSignal);
 
@@ -470,6 +472,19 @@ public slots:
         emit updateInfoSignal("Создана новая схема");
         emit updateFileNameSignal("*буфер*");
     }
+    void on_scanItemSignal(BedroomFurnitureItem* scannedItem) {
+        this->scannedItem = scannedItem;
+        emit sendScannedItem(scannedItem);
+        emit updateInfoSignal(
+            "Выбран элемент ; "
+            "x=" + QString::number(g->getRect().x()) +
+            ", y=" + QString::number(g->getRect().y()) +
+            ", w=" + QString::number(g->getRect().width()) +
+            ", h=" + QString::number(g->getRect().height()) +
+            " ;"
+            );
+        scannedItem = nullptr;
+    }
 
 signals:
     void drawnWall();
@@ -489,12 +504,15 @@ signals:
 
     void showToolTip(QPoint pos, QString text);
 
+    void sendScannedItem(BedroomFurnitureItem*);
+
 private:
     /* Свойства */
     //GpahicELement* element;
     QPointF topLeftPoint;
 
     BedroomFurnitureItem* g;
+    BedroomFurnitureItem* scannedItem;
     QGraphicsRectItem* selection;
 
     QBrush* brush;
@@ -701,6 +719,7 @@ private:
         if (g) {
             connect(g, &BedroomFurnitureItem::enterHover, this, &GraphicsScene::on_enterHover);
             connect(g, &BedroomFurnitureItem::leaveHover, this, &GraphicsScene::on_leaveHover);
+            connect(g, &BedroomFurnitureItem::scanItemSignal, this, &GraphicsScene::on_scanItemSignal);
             connect(this, &GraphicsScene::erasingSignal, g, &BedroomFurnitureItem::on_erasingSignal);
             connect(this, &GraphicsScene::erasedSignal, g, &BedroomFurnitureItem::on_erasedSignal);
             g->redrawMe();

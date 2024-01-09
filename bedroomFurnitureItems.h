@@ -139,6 +139,7 @@ public slots:
 signals:
     void enterHover();
     void leaveHover();
+    void scanItemSignal(BedroomFurnitureItem*);
 
 protected:
     static QBrush globalBrush;
@@ -235,6 +236,9 @@ protected:
 
         emit leaveHover();
         QGraphicsItem::hoverLeaveEvent(event);
+    }
+    void mouseDoubleClickEvent(QGraphicsSceneMouseEvent *event) override {
+        emit scanItemSignal(this);
     }
     void mousePressEvent(QGraphicsSceneMouseEvent* event) override
     {
