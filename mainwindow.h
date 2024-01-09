@@ -6,9 +6,15 @@
 #include <QGraphicsScene>
 
 #include <QHBoxLayout>
+#include <QVBoxLayout>
 #include <QLabel>
+#include <QPushButton>
+#include <QComboBox>
+#include <QDoubleSpinBox>
+#include <QColorDialog>
 
 #include <QFrame>
+#include <QGroupBox>
 
 #include "myGraphicsView.h"
 #include "myGraphicsScene.h"
@@ -68,6 +74,14 @@ private slots:
     void on_loadItemsAction_triggered();
 
     void on_saveAsAction_triggered();
+    // Глобальные свойства
+    void on_saveGlobalProperties();
+    void on_brushColorDialogButton();
+    void on_penColorDialogButton();
+    // Глобальные параметры
+    void on_parametersListChanged(const QString&);
+    void on_resetParameter();
+    void on_saveParameter();
 
 private:
     /* Свойства */
@@ -77,10 +91,48 @@ private:
     QLabel* fileInfo;
     QString curFileName;
 
+    QWidget* sidePanel;
+    QVBoxLayout* groupBoxLayout;
+
+    QSize colorButtonSize;
+    // Глобальные свойства
+    QGroupBox* globalProperties;
+    QVBoxLayout* globalPropertiesLayout;
+    // Кисть
+    QHBoxLayout* brushColorLayout;
+    QLabel* brushColorLabel;
+    QColor brushColor;
+    QPixmap brushColorButtonIcon;
+    QPushButton* brushColorDialogButton;
+    // Перо
+    QHBoxLayout* penWidthLayout;
+    QLabel* penWidthLabel;
+    QSpinBox* penWidthValue;
+    QHBoxLayout* penColorLayout;
+    QLabel* penColorLabel;
+    QColor penColor;
+    QPixmap penColorButtonIcon;
+    QPushButton* penColorDialogButton;
+    QHBoxLayout* penLayout;
+    QPushButton* saveGlobalProperties;
+    // Параметры
+    QGroupBox* parameters;
+    QHBoxLayout* parametersHorLayout;
+    QHBoxLayout* buttonsHorLayout;
+    QVBoxLayout* parametersVerLayout;
+    QComboBox* parametersListMenu; QDoubleSpinBox* parameterValue;
+    QList<QString> parametersList;
+    QPushButton* saveParameterButton;
+    QPushButton* resetParameterButton;
+    // Свойства элемента схемы
+    QGroupBox* localProperties;
+    QVBoxLayout* localPropertiesLayout;
+    QLabel placeholder;
+    // ---
     GraphicsView* view;
     GraphicsScene* scene;
 
-    QHBoxLayout* layout;
+    QHBoxLayout* mainLayout;
 
     bool isPropertiesPanelVisible;
 

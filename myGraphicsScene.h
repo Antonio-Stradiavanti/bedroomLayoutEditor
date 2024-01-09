@@ -16,7 +16,6 @@
 
 #include "bedroomFurnitureItems.h"
 
-
 class GraphicsScene : public QGraphicsScene {
     Q_OBJECT
 public:
@@ -367,7 +366,7 @@ public:
 
         out.writeEndDocument();
 
-        emit updateInfoSignal("Схема успешно сохранена в файл");
+        emit updateInfoSignal("Схема успешно сериализована в файл");
         emit updateFileNameSignal(fileName);
         file.close();
     }
@@ -444,7 +443,7 @@ public:
             }
         };
         resetDrawing();
-        emit updateInfoSignal("Схема успешно загружена из файла");
+        emit updateInfoSignal("Схема успешно сериализована из файла");
         emit updateFileNameSignal(fileName);
     }
 
@@ -509,6 +508,7 @@ private:
     bool m_erasing;
     bool m_rotate;
 
+public:
     /* Методы */
 
     void setWallTypeParameter(double wallThickness) {
@@ -643,7 +643,7 @@ private:
             }
         }
     }
-
+private:
     void createItem() {
         switch(m_element) {
         case BedroomFurniture::Wall:

@@ -19,6 +19,7 @@ public:
                 QPixmap(":/cursors/pointer_cursor.png")
                 )
             );
+        this->setDragMode(QGraphicsView::ScrollHandDrag);
         this->setRenderHint(QPainter::Antialiasing);
 
         myScene = new GraphicsScene();
@@ -41,6 +42,7 @@ public:
             QGraphicsView::wheelEvent(event);
         }
     }
+
 public slots:
     void on_showToolTip(QPoint pos, QString text) {
         QToolTip::showText(
@@ -48,7 +50,6 @@ public slots:
         text
         );
     }
-
 private:
     /* Свойства */
     GraphicsScene* myScene;

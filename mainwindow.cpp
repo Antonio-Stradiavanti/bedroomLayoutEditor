@@ -41,8 +41,108 @@ MainWindow::MainWindow(QWidget *parent)
     frame = new QFrame();
     this->setCentralWidget(frame);
 
-    layout = new QHBoxLayout(frame);
-    layout->addWidget(view);
+    sidePanel = new QWidget();
+    sidePanel->setVisible(false);
+
+    mainLayout = new QHBoxLayout(frame);
+    mainLayout->setSizeConstraint(QLayout::SetMinimumSize);
+    groupBoxLayout = new QVBoxLayout(sidePanel);
+
+    mainLayout->addWidget(view, 2);
+    mainLayout->addWidget(sidePanel, 1);
+    /* Настраиваю глобальные свойства */
+    globalProperties = new QGroupBox("Глобальные свойства");
+    globalPropertiesLayout = new QVBoxLayout(globalProperties);
+    // Кисть
+    brushColorLayout = new QHBoxLayout();
+    brushColorLabel = new QLabel("Цвет заливки");
+    colorButtonSize = QSize(24, 24);
+    brushColorButtonIcon = QPixmap(colorButtonSize);
+    brushColor = BedroomFurnitureItem::getGlobalBrush().color();
+    brushColorButtonIcon.fill(brushColor);
+    brushColorDialogButton = new QPushButton(
+        QIcon(brushColorButtonIcon),
+        ""
+        );
+    brushColorDialogButton->setFixedSize(colorButtonSize);
+    brushColorLayout->addWidget(brushColorLabel);
+    brushColorLayout->addWidget(brushColorDialogButton);
+    // Перо
+    penLayout = new QHBoxLayout();
+    penColorLayout = new QHBoxLayout();
+    penWidthLayout = new QHBoxLayout();
+    penColorLabel = new QLabel("Цвет обводки");
+    penColorButtonIcon = QPixmap(colorButtonSize);
+    penColor = BedroomFurnitureItem::getGlobalPen().color();
+    penColorButtonIcon.fill(penColor);
+    penColorDialogButton = new QPushButton(
+        QIcon(penColorButtonIcon),
+        ""
+        );
+    penColorDialogButton->setFixedSize(colorButtonSize);
+    penColorLayout->addWidget(penColorLabel);
+    penColorLayout->addWidget(penColorDialogButton);
+    //---
+    penWidthLabel = new QLabel("Толщина обводки");
+    penWidthValue = new QSpinBox();
+    penWidthValue->setMinimum(1);
+    penWidthValue->setMaximum(10);
+    penWidthLayout->addWidget(penWidthLabel);
+    penWidthLayout->addWidget(penWidthValue);
+    //---
+    penLayout->addLayout(penColorLayout);
+    penLayout->addLayout(penWidthLayout);
+    //---
+    saveGlobalProperties = new QPushButton("Сохранить изменения");
+    //---
+    globalPropertiesLayout->addLayout(brushColorLayout);
+    globalPropertiesLayout->addLayout(penLayout);
+    globalPropertiesLayout->addWidget(saveGlobalProperties);
+    //---
+    /* Настраиваю панель настройки глобальных параметров */
+    parameters = new QGroupBox("Глобальные параметры");
+
+    // Будет содержать выпадающее меню и наборный счетчик
+    parametersHorLayout = new QHBoxLayout();
+    parametersListMenu = new QComboBox();
+    parametersList = {
+        "Толщина стены",
+        "Длина сидения кресла",
+        "Длина кровати",
+        "Ширина пианино",
+        "Ширина столешницы",
+        "Ширина шкафа"
+    };
+    parametersListMenu->addItem("Толщина стены");
+    parametersListMenu->addItem("Длина сидения кресла");
+    parametersListMenu->addItem("Длина кровати");
+    parametersListMenu->addItem("Ширина пианино");
+    parametersListMenu->addItem("Ширина столешницы");
+    parametersListMenu->addItem("Ширина шкафа");
+    parameterValue = new QDoubleSpinBox();
+    parameterValue->setSingleStep(0.1);
+    parameterValue->setMinimum(20.0);
+    parameterValue->setMaximum(500.0);
+    parameterValue->setValue(WallTypeItem::getParameter());
+    parametersHorLayout->addWidget(parametersListMenu, 2);
+    parametersHorLayout->addWidget(parameterValue, 1);
+    // Будет содержать кнопку и меню позв изменить значения параметров.
+    buttonsHorLayout = new QHBoxLayout();
+    saveParameterButton = new QPushButton("Сохранить изменения");
+    resetParameterButton = new QPushButton("Сбросить значение параметра");
+    buttonsHorLayout->addWidget(resetParameterButton);
+    buttonsHorLayout->addWidget(saveParameterButton);
+    // Устанавливаю все layout
+    parametersVerLayout = new QVBoxLayout(parameters);
+    parametersVerLayout->addLayout(parametersHorLayout);
+    parametersVerLayout->addLayout(buttonsHorLayout);
+    //---
+    localProperties = new QGroupBox("Свойства определенного элемента схемы");
+
+    groupBoxLayout->addWidget(globalProperties);
+    groupBoxLayout->addWidget(parameters);
+    groupBoxLayout->addWidget(localProperties);
+
 
     /* Связь сигнала и слота */
     connect(scene, &GraphicsScene::drawnWall, this, &MainWindow::on_drawnWall);
@@ -65,6 +165,16 @@ MainWindow::MainWindow(QWidget *parent)
     connect(scene, &GraphicsScene::updateInfoSignal, this, &MainWindow::on_updateInfoSignal);
     connect(scene, &GraphicsScene::updateFileNameSignal, this, &MainWindow::on_updateFileNameSignal);
 
+    /* Боковая панель */
+    // Глобальные свойства
+    connect(brushColorDialogButton, &QPushButton::clicked, this, &MainWindow::on_brushColorDialogButton);
+    connect(penColorDialogButton, &QPushButton::clicked, this, &MainWindow::on_penColorDialogButton);
+    connect(saveGlobalProperties, &QPushButton::clicked, this, &MainWindow::on_saveGlobalProperties);
+    // Глобальные параметры
+    connect(parametersListMenu, &QComboBox::currentTextChanged, this, &MainWindow::on_parametersListChanged);
+    connect(saveParameterButton, &QPushButton::clicked, this, &MainWindow::on_saveParameter);
+    connect(resetParameterButton, &QPushButton::clicked, this, &MainWindow::on_resetParameter);
+    /* Панель инструментов */
     QWidget* empty = new QWidget();
     empty->setSizePolicy(QSizePolicy::Expanding,QSizePolicy::Preferred);
     ui->toolBar->addWidget(empty);
@@ -79,26 +189,33 @@ MainWindow::~MainWindow()
     delete fileInfo;
     delete view;
     delete scene;
+
+    delete globalProperties;
+    delete localProperties;
+    delete parameters;
+
 }
 /* TODO */
 void MainWindow::on_editPropertiesAction_triggered()
 {
-    if (!isPropertiesPanelVisible) {
-        isPropertiesPanelVisible = true;
+    if (!sidePanel->isVisible()) {
+        sidePanel->setVisible(true);
         ui->editPropertiesAction->setIcon(
             otherIconsList[OtherIcons::PropertiesEnabled]
             );
+
     } else {
-        isPropertiesPanelVisible = false;
+        sidePanel->setVisible(false);
         ui->editPropertiesAction->setIcon(
             otherIconsList[OtherIcons::Properties]
             );
     }
-    //ui->groupBox->setVisible(isPropertiesPanelVisible);
+
 }
 
 void MainWindow::setDrawingIcons(BedroomFurniture type)
 {
+    this->view->setDragMode(QGraphicsView::NoDrag);
     if (m_erasing) {
         m_erasing = false;
         on_erasedSignal();
@@ -134,6 +251,7 @@ void MainWindow::setDrawingIcons(BedroomFurniture type)
 
 void MainWindow::unsetDrawingIcons(BedroomFurniture type)
 {
+    view->setDragMode(QGraphicsView::ScrollHandDrag);
     switch(type) {
     case BedroomFurniture::Wall:
         ui->drawingWallAction->setIcon(drawingIconsList[DrawingIcons::DrawingWall]);
@@ -259,28 +377,40 @@ void MainWindow::on_eraseAction_triggered()
         ui->eraseAction->setIcon(
             QIcon(":/icons/erase_action_enabled.png")
             );
+        view->setDragMode(QGraphicsView::NoDrag);
     }
     else {
         m_erasing = false;
         scene->setErasing(false);
+        view->setDragMode(QGraphicsView::ScrollHandDrag);
     }
 }
 void MainWindow::on_erasedSignal() {
     ui->eraseAction->setIcon(
         QIcon(":/icons/erase_action.png")
         );
+    view->setDragMode(QGraphicsView::ScrollHandDrag);
 }
 /* Сериализация */
 
 void MainWindow::on_saveAction_triggered()
 {
-    QString fileName = QFileDialog::getSaveFileName(
-        this, "Выполнить сериализацию в файл", "",
-        "XML files (*.xml);;Json files (*.json);;All files (*.*)"
-    );
-    if (!fileName.isEmpty()) {
-        scene->toXml(fileName);
-        this->setWindowTitle(this->windowTitle() + " | " + fileName);
+    if (curFileName == "*буфер*") {
+        curFileName = QFileDialog::getSaveFileName(
+            this, "Выполнить сериализацию в файл", "",
+            "XML files (*.xml);;Json files (*.json);;All files (*.*)"
+            );
+        if (!curFileName.isEmpty()) {
+            scene->toXml(curFileName);
+
+        }
+        else {
+            on_updateInfoSignal("Файл не выбран, отмена сериализации");
+            curFileName = "*буфер*";
+        }
+    }
+    else {
+        scene->toXml(curFileName);
     }
 }
 
@@ -292,14 +422,27 @@ void MainWindow::on_loadItemsAction_triggered()
         );
 
     if (!fileName.isEmpty()) {
-        scene->fromXml(fileName);
+        curFileName = fileName;
+        scene->fromXml(curFileName);
     }
-
+    else {
+        on_updateInfoSignal("Файл не выбран, отмена сериализации");
+    }
 }
 
 void MainWindow::on_saveAsAction_triggered()
 {
-
+    QString fileName = QFileDialog::getOpenFileName(
+        this, "Загрузить из XML файла", "",
+        "XML files (*.xml);;Json files (*.json);;All files (*.*)"
+        );
+    if (!fileName.isEmpty()) {
+        curFileName = fileName;
+        scene->toXml(curFileName);
+    }
+    else {
+        on_updateInfoSignal("Файл не выбран, отмена сериализации");
+    }
 }
 
 void MainWindow::on_updateInfoSignal(QString message)
@@ -311,4 +454,85 @@ void MainWindow::on_updateFileNameSignal(QString fileName)
     curFileName = fileName;
     this->fileInfo->setText("Файл : " + curFileName);
 }
+/* Боковая панель */
+// Глобальные свойства
+void MainWindow::on_brushColorDialogButton() {
+    QPalette palette  = brushColorDialogButton->palette();
+    QColor color = palette.color(QPalette::Button);
+    QColor tmpColor = QColorDialog::getColor(color, this);
+    if (tmpColor.isValid()) {
+        brushColor = tmpColor;
+        brushColorButtonIcon.fill(brushColor);
+        brushColorDialogButton->setIcon(
+            QIcon(brushColorButtonIcon)
+            );
+    }
+}
 
+void MainWindow::on_penColorDialogButton() {
+    QPalette palette  = penColorDialogButton->palette();
+    QColor color = palette.color(QPalette::Button);
+    QColor tmpColor = QColorDialog::getColor(color, this);
+    if (tmpColor.isValid()) {
+        penColor = tmpColor;
+        penColorButtonIcon.fill(penColor);
+        penColorDialogButton->setIcon(
+            QIcon(penColorButtonIcon)
+            );
+    }
+}
+
+void MainWindow::on_saveGlobalProperties() {
+    BedroomFurnitureItem::setGlobalBrush(
+        QBrush(brushColor)
+    );
+    BedroomFurnitureItem::setGlobalPen(
+        QPen(penColor, penWidthValue->value())
+    );
+    scene->update();
+}
+// Глобальные параметры
+void MainWindow::on_parametersListChanged(const QString& text) {
+    if (text == parametersList[0]) {
+        parameterValue->setValue(WallTypeItem::getParameter());
+    }
+    else if (text == parametersList[1]) {
+        parameterValue->setValue(ChairItem::getParameter());
+    }
+    else if (text == parametersList[2]) {
+        parameterValue->setValue(BedItem::getParameter());
+    }
+    else if (text == parametersList[3]) {
+        parameterValue->setValue(PianoItem::getParameter());
+    }
+    else if (text == parametersList[4]) {
+        parameterValue->setValue(DeskItem::getParameter());
+    }
+    else if (text == parametersList[5]) {
+        parameterValue->setValue(WardrobeItem::getParameter());
+    }
+}
+void MainWindow::on_resetParameter() {
+    on_parametersListChanged(parametersListMenu->currentText());
+}
+void MainWindow::on_saveParameter() {
+    QString text = parametersListMenu->currentText();
+    if (text == parametersList[0]) {
+        scene->setWallTypeParameter(parameterValue->value());
+    }
+    else if (text == parametersList[1]) {
+        scene->setChairParameter(parameterValue->value());
+    }
+    else if (text == parametersList[2]) {
+        scene->setBedParameter(parameterValue->value());
+    }
+    else if (text == parametersList[3]) {
+        scene->setPianoParameter(parameterValue->value());
+    }
+    else if (text == parametersList[4]) {
+       scene->setDeskParameter(parameterValue->value());
+    }
+    else if (text == parametersList[5]) {
+        scene->setWardrobeParameter(parameterValue->value());
+    }
+}
