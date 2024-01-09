@@ -6,6 +6,9 @@
 #include <QGraphicsScene>
 
 #include <QHBoxLayout>
+#include <QLabel>
+
+#include <QFrame>
 
 #include "myGraphicsView.h"
 #include "myGraphicsScene.h"
@@ -36,6 +39,9 @@ public slots:
 
     void on_erasedSignal();
 
+    void on_updateInfoSignal(QString);
+    void on_updateFileNameSignal(QString);
+
 private slots:
     void on_editPropertiesAction_triggered();
 
@@ -57,9 +63,19 @@ private slots:
 
     void on_drawingWardrobeAction_triggered();
 
+    void on_saveAction_triggered();
+
+    void on_loadItemsAction_triggered();
+
+    void on_saveAsAction_triggered();
+
 private:
     /* Свойства */
     Ui::MainWindow* ui;
+
+    QFrame* frame;
+    QLabel* fileInfo;
+    QString curFileName;
 
     GraphicsView* view;
     GraphicsScene* scene;
@@ -89,7 +105,7 @@ private:
     bool m_erasing;
 
 private:
-    /* Закрытые методы */
+    /* Иконки */
     void setDrawingIcons(BedroomFurniture);
     void unsetDrawingIcons(BedroomFurniture);
 

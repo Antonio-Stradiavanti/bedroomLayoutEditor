@@ -1,5 +1,5 @@
-#ifndef GRAPHICELEMENT_H
-#define GRAPHICELEMENT_H
+#ifndef BEDROOMFURNITUREITEMS_H
+#define BEDROOMFURNITUREITEMS_H
 
 #include <QGraphicsItem>
 #include <QPainter>
@@ -22,9 +22,9 @@ class BedroomFurnitureItem : public QObject, public QGraphicsItem
 {
     Q_OBJECT
 public:
-    BedroomFurnitureItem(double x, double y, double w, double h, bool is_horizontal = false, QGraphicsItem* parent = nullptr)
+    BedroomFurnitureItem(double x, double y, double w, double h, QGraphicsItem* parent = nullptr)
         : QGraphicsItem{parent}
-        , is_horizontal{is_horizontal}
+        , is_horizontal{false}
 
         , topLetfPoint{}
         , rect{x, y, w, h}
@@ -64,12 +64,22 @@ public:
         m_erasing = erasing;
     }
     /* Геттеры */
+    BedroomFurniture getType() {
+        return type;
+    }
+    bool getIsHorizontal() {
+        return is_horizontal;
+    }
+    QRectF getRect() {
+        return mapRectToScene(rect);
+    }
+    /* Переопределил */
 
     // void mousePressEvent(QGraphicsSceneMouseEvent *event) override;
     // void mouseMoveEvent(QGraphicsSceneMouseEvent *event) override;
     // void mouseReleaseEvent(QGraphicsSceneMouseEvent *event) override;
     /* Методы */
-    void repositionFromHorizont(QRectF selection) {
+    void rotateFromHorizontalToVertical() {
         is_horizontal = true;
         setTransformOriginPoint(rect.center());
         setRotation(-90);
@@ -106,7 +116,6 @@ protected:
     bool m_erasing;
 
     /* Методы */
-    /* Необходимо переопределить */
     QRectF boundingRect() const override {
         return rect;
     }
@@ -213,44 +222,42 @@ protected:
 
 class WallTypeItem : public BedroomFurnitureItem {
 public:
-    WallTypeItem(double x, double y, double w, double h, double wallThickness, bool is_horizontal = false, QGraphicsItem* parent = nullptr)
-        : BedroomFurnitureItem(x, y, w, h, is_horizontal, parent)
-        , wallThickness{wallThickness}
+    WallTypeItem(double x, double y, double w, double h, QGraphicsItem* parent = nullptr)
+        : BedroomFurnitureItem(x, y, w, h, parent)
     {
         brick = wallThickness / 3.0;
     }
     /* Сеттеры */
-    void setWallThickness(double newWallThickness) {
-        wallThickness = newWallThickness;
+    static void setWallThickness(double newWallThickness) {
+        WallTypeItem::wallThickness = newWallThickness;
+    }
+    /* Геттеры */
+    static double getWallThickness() {
+        return WallTypeItem::wallThickness;
     }
 protected:
-    double wallThickness;
+    static double wallThickness;
     double brick;
 };
 
+
 class WallItem : public WallTypeItem {
 public:
-    WallItem(double x, double y, double w, double h, double wallThickness, bool is_horizontal = false, QGraphicsItem* parent = nullptr)
-        : WallTypeItem(x, y, w, h, wallThickness, is_horizontal, parent)
+    WallItem(double x, double y, double w, double h, QGraphicsItem* parent = nullptr)
+        : WallTypeItem(x, y, w, h, parent)
     {
         this->type = BedroomFurniture::Wall;
     }
-    ~WallItem() {}
-
 private:
-    /* Свойтсва */
     /* Методы */
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget = nullptr) override
     {
         BedroomFurnitureItem::paint(painter, option, widget);
-        //painter->drawRoundedRect(rect, xr, yr);
         painter->setBrush(brush);
         painter->drawRect(rect);
     }
-    /* Достаточно переопределить */
     QPainterPath shape() const override {
         QPainterPath path;
-        // path.addRoundedRect(rect, xr, yr);
         path.addRect(rect);
         return path;
     }
@@ -258,8 +265,8 @@ private:
 
 class WindowItem : public WallTypeItem {
 public:
-    WindowItem(double x, double y, double w, double h, double wallThickness, bool is_horizontal = false, QGraphicsItem* parent = nullptr)
-        : WallTypeItem(x, y, w, h, wallThickness, is_horizontal, parent)
+    WindowItem(double x, double y, double w, double h, QGraphicsItem* parent = nullptr)
+        : WallTypeItem(x, y, w, h, parent)
     {
         this->type = BedroomFurniture::Window;
 
@@ -270,35 +277,25 @@ public:
             &rh = rect.height();
         rect1 = QRectF(
             rect.topLeft(),
-            is_horizontal ?
-                QSizeF(brick, rh) : QSizeF(rw, brick)
+            QSizeF(brick, rh)
             );
         rect2 = QRectF(
             QPointF(rx + brick, ry + brick),
             QSizeF(brick, brick)
             );
         rect3 = QRectF(
-            is_horizontal ?
-                QPointF(rx + rw - 2.0*brick, ry + brick) :
-                QPointF(rx + brick, ry + rh - 2.0*brick),
+            QPointF(rx + rw - 2.0*brick, ry + brick),
             QSizeF(brick, brick)
             );
         rect4 = QRectF(
-            is_horizontal ?
-                QPointF(rx + rw - brick, ry) : QPointF(rx, ry + rh - brick)
+            QPointF(rx + rw - brick, ry)
             ,
-            is_horizontal ?
-                QSizeF(brick, rh) : QSizeF(rw, brick)
-
+            QSizeF(brick, rh)
             );
         line = QLineF(
-            is_horizontal ?
-            QPointF(rx + 2.0*brick, ry + 0.5*rh) :
-            QPointF(rx + 0.5*rw, ry + 2.0*brick)
+            QPointF(rx + 2.0*brick, ry + 0.5*rh)
             ,
-            is_horizontal ?
-            QPointF(rx + rw - 2.0*brick, ry + 0.5*rh) :
-            QPointF(rx + 0.5*rw, ry + rh - 2.0*brick)
+            QPointF(rx + rw - 2.0*brick, ry + 0.5*rh)
         );
     }
 private:
@@ -324,13 +321,8 @@ private:
     }
     QPainterPath shape() const override {
         QPainterPath path;
-        // path.addRoundedRect(rect, xr, yr);
         path.addRect(rect);
-        path.addRect(rect1);
-        path.moveTo(line.p1());
-        path.lineTo(line.p2());
-        path.addRect(rect3);
-        path.addRect(rect4);
+
         return path;
     }
 
@@ -338,8 +330,8 @@ private:
 
 class DoorItem : public WallTypeItem {
 public:
-    DoorItem(double x, double y, double w, double h, double wallThickness, bool is_horizontal = false, QGraphicsItem* parent = nullptr)
-        : WallTypeItem(x, y, w, h, wallThickness, is_horizontal, parent)
+    DoorItem(double x, double y, double w, double h, QGraphicsItem* parent = nullptr)
+        : WallTypeItem(x, y, w, h, parent)
     {
         this->type = BedroomFurniture::Door;
 
@@ -351,23 +343,15 @@ public:
 
         rect1 = QRectF(
             rect.topLeft(),
-            is_horizontal ?
-            QSizeF(brick, rh) :
-            QSizeF(rw, brick)
+            QSizeF(brick, rh)
             );
         rect2 = QRectF(
-            is_horizontal ?
-            QPointF(rx + brick, ry) :
-            QPointF(rx, ry + brick)
+            QPointF(rx + brick, ry)
             ,
-            is_horizontal ?
-            QSizeF(rw - 2.0*brick, brick) :
-            QSizeF(brick, rh - 2.0*brick)
+            QSizeF(rw - 2.0*brick, brick)
             );
         rect3 = QRectF(
-            is_horizontal ?
-            QPointF(rx + rw - brick, ry) :
-            QPointF(rx, ry + rh - brick)
+            QPointF(rx + rw - brick, ry)
             ,
             rect1.size()
             );
@@ -377,13 +361,10 @@ public:
             QSizeF(brick, brick)
         );
         rect5 = QRectF(
-            is_horizontal ?
-            QPointF(rx + rw - 2.0*brick, ry + brick) :
-            QPointF(rx + brick, ry + rh - 2.0*brick)
+            QPointF(rx + rw - 2.0*brick, ry + brick)
             ,
             rect4.size()
         );
-
     }
 private:
     /* Свойства */
@@ -420,9 +401,8 @@ private:
 
 class ChairItem : public BedroomFurnitureItem {
 public:
-    ChairItem(double x, double y, double w, double h, double seat, QGraphicsItem* parent = nullptr)
-        : BedroomFurnitureItem(x, y, w, h, false, parent)
-        , seat{seat}
+    ChairItem(double x, double y, double w, double h, QGraphicsItem* parent = nullptr)
+        : BedroomFurnitureItem(x, y, w, h, parent)
     {
         this->type = BedroomFurniture::Chair;
         const double
@@ -431,16 +411,16 @@ public:
             &rw = rect.width(),   // 23/15*seat
             &rh = rect.height(); // rh = 1.1*seat
         // d -> длина стороны квадрата, оп. скр угол прям.
-        d = seat / 12.0;
-        double armSideM = seat / 15.0; // 4 если seat = 60
+        d = chairParamSeatSize / 12.0;
+        double armSideM = chairParamSeatSize / 15.0; // 4 если seat = 60
 
-        QSizeF armRestSize = QSizeF(seat / 3.0, 0.7*seat); // Толстые подлокотники
-        QSizeF armSize = QSizeF(0.2*seat, 1.1*seat); // Тонкие подлокотники
-        QSizeF seatBackSize = QSizeF(0.4*seat + seat, 0.3*seat);
+        QSizeF armRestSize = QSizeF(chairParamSeatSize / 3.0, 0.7*chairParamSeatSize); // Толстые подлокотники
+        QSizeF armSize = QSizeF(0.2*chairParamSeatSize, 1.1*chairParamSeatSize); // Тонкие подлокотники
+        QSizeF seatBackSize = QSizeF(0.4*chairParamSeatSize + chairParamSeatSize, 0.3*chairParamSeatSize);
 
         chairSeat = QRectF( // Седушка
-            QPointF(rx + (4.0/15.0)*seat, ry),
-            QSizeF(seat, seat)
+            QPointF(rx + (4.0/15.0)*chairParamSeatSize, ry),
+            QSizeF(chairParamSeatSize, chairParamSeatSize)
             );
         chairSeatBack = QRectF( // Спинка
             QPointF(rx + armSideM, ry)
@@ -448,16 +428,16 @@ public:
             seatBackSize
         );
         line = QLineF( // Полоска на спинке
-            QPointF(rx + armSideM, ry + 0.2*seat),
-            QPointF(rx + rw - armSideM, ry + 0.2*seat)
+            QPointF(rx + armSideM, ry + 0.2*chairParamSeatSize),
+            QPointF(rx + rw - armSideM, ry + 0.2*chairParamSeatSize)
             );
         chairArmRest1 = QRectF(
-            QPointF(rx , ry + 0.2*seat)
+            QPointF(rx , ry + 0.2*chairParamSeatSize)
             ,
             armRestSize
             );
         chairArmRest2 = QRectF(
-            QPointF(rx + (18.0/15.0)*seat, ry + 0.2*seat)
+            QPointF(rx + (18.0/15.0)*chairParamSeatSize, ry + 0.2*chairParamSeatSize)
             ,
             armRestSize
             );
@@ -472,10 +452,18 @@ public:
             armSize
             );
     }
-
+    /* Сеттеры */
+    static void setChairParamSeatSize(double p) {
+        chairParamSeatSize = p;
+    }
+    /* Геттеры */
+    static double getChairParamSeatSize() {
+        return chairParamSeatSize;
+    }
 private:
+    static double chairParamSeatSize;
     /* Свойства */
-    double seat, d;
+    double d;
     QRectF chairSeat, chairArm1, chairArm2, chairArmRest1, chairArmRest2, chairSeatBack;
     QLineF line;
     /* Методы */
@@ -507,8 +495,8 @@ private:
 
 class BedItem : public BedroomFurnitureItem {
 public:
-    BedItem(double x, double y, double w, double h, double bedLen, QGraphicsItem* parent = nullptr)
-        : BedroomFurnitureItem(x, y, w, h, false, parent)
+    BedItem(double x, double y, double w, double h, QGraphicsItem* parent = nullptr)
+        : BedroomFurnitureItem(x, y, w, h, parent)
 
     {
         this->type = BedroomFurniture::Bed;
@@ -559,7 +547,16 @@ public:
             QPointF(rx + rw, sy + 2.0*spacingBetweenLines)
             );
     }
+    /* Сеттеры */
+    static void setBedParamHeight(double p) {
+        bedParamHeight = p;
+    }
+    /* Геттеры */
+    static double getBedParamHeight() {
+        return bedParamHeight;
+    }
 private:
+    static double bedParamHeight;
     /* Свойства */
     double cw, ch;
     //double bw, bh;
@@ -592,8 +589,8 @@ private:
 
 class PianoItem : public BedroomFurnitureItem {
 public:
-    PianoItem(double x, double y, double w, double h, double pianoParamHeight, QGraphicsItem* parent = nullptr)
-        : BedroomFurnitureItem(x, y, w, h, false, parent)
+    PianoItem(double x, double y, double w, double h, QGraphicsItem* parent = nullptr)
+        : BedroomFurnitureItem(x, y, w, h, parent)
     {
         this->type = BedroomFurniture::Piano;
 
@@ -636,7 +633,14 @@ public:
             QSizeF(rw - 2.0*sideChairM, 0.5*sideChairM)
             );
     }
+    static void setPianoParamHeight(double p) {
+        pianoParamHeight = p;
+    }
+    static double getPianoParamHeight() {
+        return pianoParamHeight;
+    }
 private:
+    static double pianoParamHeight;
     /* Свойства */
     QRectF pianoRect, keysRect, pianoChairRect;
     QLineF line;
@@ -669,9 +673,8 @@ private:
 
 class DeskItem : public BedroomFurnitureItem {
 public:
-    DeskItem(double x, double y, double w, double h, double deskParamHeight, QGraphicsItem* parent = nullptr)
-        : BedroomFurnitureItem(x, y, w, h, false, parent)
-        , deskParamHeight{deskParamHeight}
+    DeskItem(double x, double y, double w, double h, QGraphicsItem* parent = nullptr)
+        : BedroomFurnitureItem(x, y, w, h, parent)
 
     {
         this->type = BedroomFurniture::Desk;
@@ -744,10 +747,16 @@ public:
         }
 
     }
-
+    static void setDeskParamHeight(double p) {
+        deskParamHeight = p;
+    }
+    static double getDeskParamHeight() {
+        return deskParamHeight;
+    }
 private:
+    static double deskParamHeight;
     /* Свойства */
-    double deskParamHeight, d;
+    double d;
     QRectF deskBoard, deskChairSeat, deskChairArmRest1, deskChairArmRest2, deskChairSeatBack;
     QLineF line;
     QPainterPath cross;
@@ -778,10 +787,11 @@ private:
         return path;
     }
 };
+
 class WardrobeItem : public BedroomFurnitureItem {
 public:
     WardrobeItem(double x, double y, double w, double h, QGraphicsItem* parent = nullptr)
-        : BedroomFurnitureItem(x, y, w, h, false, parent)
+        : BedroomFurnitureItem(x, y, w, h, parent)
     {
         this->type = BedroomFurniture::Wardrobe;
         const double
@@ -794,7 +804,16 @@ public:
             QPointF(rx + rw, ry + rh - 0.1*rh)
             );
     }
+    /* Сеттеры */
+    static void setWardrobeParamHeight(double p) {
+        wardrobeParamHeight = p;
+    }
+    /* Геттеры */
+    static double getWardrobeParamHeight() {
+        return wardrobeParamHeight;
+    }
 private:
+    static double wardrobeParamHeight;
     /* Свойства */
     QLineF line;
     /* Методы */
@@ -813,4 +832,4 @@ private:
         return path;
     }
 };
-#endif // GRAPHICELEMENT_H
+#endif // BEDROOMFURNITUREITEMS_H

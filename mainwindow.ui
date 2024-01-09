@@ -27,9 +27,9 @@
     <property name="title">
      <string>Файл</string>
     </property>
-    <addaction name="toXmlAction"/>
+    <addaction name="saveAction"/>
     <addaction name="saveAsAction"/>
-    <addaction name="fromXmlAction"/>
+    <addaction name="loadItemsAction"/>
    </widget>
    <widget class="QMenu" name="menu_2">
     <property name="title">
@@ -68,9 +68,9 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
-   <addaction name="toXmlAction"/>
+   <addaction name="saveAction"/>
    <addaction name="saveAsAction"/>
-   <addaction name="fromXmlAction"/>
+   <addaction name="loadItemsAction"/>
    <addaction name="separator"/>
    <addaction name="eraseAction"/>
    <addaction name="clearAction"/>
@@ -85,7 +85,7 @@
    <addaction name="drawingDeskAction"/>
    <addaction name="drawingWardrobeAction"/>
   </widget>
-  <action name="toXmlAction">
+  <action name="saveAction">
    <property name="icon">
     <iconset resource="res.qrc">
      <normaloff>:/icons/toXml.png</normaloff>
@@ -110,7 +110,7 @@
     <string>Ctrl+Shift+S</string>
    </property>
   </action>
-  <action name="fromXmlAction">
+  <action name="loadItemsAction">
    <property name="icon">
     <iconset resource="res.qrc">
      <normaloff>:/icons/fromXml.png</normaloff>
@@ -118,6 +118,9 @@
    </property>
    <property name="text">
     <string>Загрузить схему</string>
+   </property>
+   <property name="toolTip">
+    <string>Загрузить схему из файла</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+O</string>

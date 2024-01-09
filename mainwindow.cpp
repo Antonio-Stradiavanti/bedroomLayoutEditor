@@ -24,19 +24,25 @@ MainWindow::MainWindow(QWidget *parent)
       }
     , m_erasing{false}
 
-{
-    this->setWindowTitle("Редактор планировки спальни");
+    , curFileName{"*буфер*"}
 
+{
     ui->setupUi(this);
+
+    this->statusBar();
+    fileInfo = new QLabel();
+    fileInfo->setText("Файл : " + curFileName);
+    this->statusBar()->addPermanentWidget(fileInfo);
 
     scene = new GraphicsScene();
     view = new GraphicsView();
     view->setScene(scene);
 
-    layout = new QHBoxLayout();
-    layout->addWidget(view);
+    frame = new QFrame();
+    this->setCentralWidget(frame);
 
-    this->centralWidget()->setLayout(layout);
+    layout = new QHBoxLayout(frame);
+    layout->addWidget(view);
 
     /* Связь сигнала и слота */
     connect(scene, &GraphicsScene::drawnWall, this, &MainWindow::on_drawnWall);
@@ -56,6 +62,9 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(scene, &GraphicsScene::showToolTip, view, &GraphicsView::on_showToolTip);
 
+    connect(scene, &GraphicsScene::updateInfoSignal, this, &MainWindow::on_updateInfoSignal);
+    connect(scene, &GraphicsScene::updateFileNameSignal, this, &MainWindow::on_updateFileNameSignal);
+
     QWidget* empty = new QWidget();
     empty->setSizePolicy(QSizePolicy::Expanding,QSizePolicy::Preferred);
     ui->toolBar->addWidget(empty);
@@ -66,6 +75,8 @@ MainWindow::MainWindow(QWidget *parent)
 MainWindow::~MainWindow()
 {
     delete ui;
+    delete frame;
+    delete fileInfo;
     delete view;
     delete scene;
 }
@@ -259,5 +270,45 @@ void MainWindow::on_erasedSignal() {
         QIcon(":/icons/erase_action.png")
         );
 }
+/* Сериализация */
 
+void MainWindow::on_saveAction_triggered()
+{
+    QString fileName = QFileDialog::getSaveFileName(
+        this, "Выполнить сериализацию в файл", "",
+        "XML files (*.xml);;Json files (*.json);;All files (*.*)"
+    );
+    if (!fileName.isEmpty()) {
+        scene->toXml(fileName);
+        this->setWindowTitle(this->windowTitle() + " | " + fileName);
+    }
+}
+
+void MainWindow::on_loadItemsAction_triggered()
+{
+    QString fileName = QFileDialog::getOpenFileName(
+        this, "Загрузить из XML файла", "",
+        "XML files (*.xml);;Json files (*.json);;All files (*.*)"
+        );
+
+    if (!fileName.isEmpty()) {
+        scene->fromXml(fileName);
+    }
+
+}
+
+void MainWindow::on_saveAsAction_triggered()
+{
+
+}
+
+void MainWindow::on_updateInfoSignal(QString message)
+{
+    this->statusBar()->showMessage(message, 10000);
+}
+void MainWindow::on_updateFileNameSignal(QString fileName)
+{
+    curFileName = fileName;
+    this->fileInfo->setText("Файл : " + curFileName);
+}
 

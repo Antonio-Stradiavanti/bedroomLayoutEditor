@@ -3,12 +3,18 @@
 
 #include <QGraphicsScene>
 #include <QList>
+#include <QFile>
 
 #include <QGraphicsSceneMouseEvent>
 #include <QWheelEvent>
 #include <QTransform>
 
-#include "graphicElement.h"
+#include <QFileDialog>
+
+#include <QXmlStreamWriter>
+#include <QXmlStreamReader>
+
+#include "bedroomFurnitureItems.h"
 
 
 class GraphicsScene : public QGraphicsScene {
@@ -21,27 +27,25 @@ public:
         , m_rotate{false}
 
         , g{nullptr}
-        /* Параметры */
-        , wallThickness{27.0}
-        , chairParamSeat{90.0}
-        , bedParamHeight{200.0}
-        , pianoParamHeight{160.0}
-        , deskParamHeight{90.0}
-        , wardrobeParamHeight{100}
+
+        , wallTypeItemWidth{}
+        , wallTypeItemHeight{}
+
         /* Флаги */
         , m_element{BedroomFurniture::None}
         //, element{nullptr}
     {
+        /* Параметры */
+        createSelection();
 
-        computeChairSize();
-        computeBedSize();
-        computePianoSize();
-        computeDeskSize();
-        computeWardrobeSize();
+        setWallTypeItemSize(27.0);
+        setChairItemSize(90.0);
+        setBedItemSize(200.0);
+        setPianoItemSize(160.0);
+        setDeskItemSize(90.0);
+        setWardrobeSize(100);
 
-        selection = new QGraphicsRectItem();
-        addItem(selection);
-        selection->hide();
+
     }
     ~GraphicsScene() {
         delete brush;
@@ -63,27 +67,18 @@ public:
             emit erasedSignal();
         }
     }
-    void setWallThickness(double newWallThikness) {
-        wallThickness = newWallThikness;
-    }
-    void setSeat(double newSeat) {
-        chairParamSeat = newSeat;
-
-    }
     /* Геттеры */
     BedroomFurniture getDrawingElement() {
         return m_element;
     }
-    double getWallThickness() {
-        return wallThickness;
-    }
     /* Обработчики событий */
     void mousePressEvent(QGraphicsSceneMouseEvent* event) override
-    {
+    {        
         if (event->button() == Qt::LeftButton &&
             m_element != BedroomFurniture::None)
         {
             topLeftPoint = event->scenePos();
+
             selection->setPen(
                 QPen(Qt::black, 2, Qt::DashLine)
                 );
@@ -111,24 +106,27 @@ public:
             case BedroomFurniture::Wall:
             case BedroomFurniture::Window:
             case BedroomFurniture::Door:
-                if (qAbs(event->scenePos().x() - topLeftPoint.x()) > wallThickness)
+                wallTypeItemHeight = WallTypeItem::getWallThickness();
+                if (
+                    qAbs(event->scenePos().x() - topLeftPoint.x()) >
+                    qAbs(event->scenePos().y() - topLeftPoint.y())
+                    )
                 {
-                    selectionSize.setWidth(
-                        qAbs(event->scenePos().x() - topLeftPoint.x())
-                    );
-                    selectionSize.setHeight(
-                        wallThickness
-                    );
-                    m_rotate = true;
+                    wallTypeItemWidth = qAbs(event->scenePos().x() - topLeftPoint.x());
+                    selectionSize = QSizeF(
+                        wallTypeItemWidth,
+                        wallTypeItemHeight
+                        );
+
+                    m_rotate = false;
                 }
                 else {
-                    selectionSize.setWidth(
-                        wallThickness
+                    wallTypeItemWidth = qAbs(event->scenePos().y() - topLeftPoint.y());
+                    selectionSize = QSizeF(
+                        wallTypeItemHeight,
+                        wallTypeItemWidth
                         );
-                    selectionSize.setHeight(
-                        qAbs(event->scenePos().y() - topLeftPoint.y())
-                        );
-                    m_rotate = false;
+                    m_rotate = true;
                 }
                 break;
             case BedroomFurniture::Chair:
@@ -153,7 +151,7 @@ public:
                 }
                 break;
             case BedroomFurniture::Bed:
-                if (qAbs(event->scenePos().x() - topLeftPoint.x()) > bedParamHeight)
+                if (qAbs(event->scenePos().x() - topLeftPoint.x()) > bedItemHeight)
                 {
                     selectionSize.setWidth(
                         bedItemHeight
@@ -175,28 +173,61 @@ public:
                 }
                 break;
             case BedroomFurniture::Piano:
-                selectionSize = determinePosition(
-                    qAbs(event->scenePos().x() - topLeftPoint.x()),
-                    pianoParamHeight,
-                    pianoItemWidth,
+                if (
+                    qAbs(event->scenePos().x() - topLeftPoint.x()) >
                     pianoItemHeight
-                    );
+                   )
+                {
+                    selectionSize = QSizeF(
+                        pianoItemWidth, pianoItemHeight
+                        );
+                    m_rotate = false;
+                }
+                else {
+                    selectionSize = QSizeF(
+                        pianoItemHeight, pianoItemWidth
+                        );
+                    m_rotate = true;
+                }
                 break;
             case BedroomFurniture::Desk:
-                selectionSize = determinePosition(
-                    qAbs(event->scenePos().x() - topLeftPoint.x()),
-                    deskParamHeight,
-                    deskItemWidth,
+                if (
+                    qAbs(event->scenePos().x() - topLeftPoint.x()) >
                     deskItemHeight
-                    );
+                    )
+                {
+                    selectionSize = QSizeF(
+                        deskItemWidth, deskItemHeight
+                        );
+                    m_rotate = false;
+                }
+                else {
+                    selectionSize = QSizeF(
+                        deskItemHeight, deskItemWidth
+                        );
+                    m_rotate = true;
+                }
                 break;
             case BedroomFurniture::Wardrobe:
-                selectionSize = determinePosition(
-                    qAbs(event->scenePos().x() - topLeftPoint.x()),
-                    wardrobeParamHeight,
-                    wardrobeItemWidth,
+                if (
+                    qAbs(event->scenePos().x() - topLeftPoint.x()) >
                     wardrobeItemHeight
+                    )
+                {
+                    selectionSize = QSizeF(
+                        wardrobeItemWidth,
+                        wardrobeItemHeight
+                        );
+                    m_rotate = false;
+                }
+                else {
+                    selectionSize = QSizeF(
+                        wardrobeItemHeight,
+                        wardrobeItemWidth
                     );
+                    m_rotate = true;
+                }
+
                 break;
             }
 
@@ -227,30 +258,24 @@ public:
                     g = new WallItem(
                         selection->rect().x(),
                         selection->rect().y(),
-                        selection->rect().width(),
-                        selection->rect().height(),
-                        wallThickness,
-                        m_rotate
+                        wallTypeItemWidth,
+                        wallTypeItemHeight
                         );
                     break;
                 case BedroomFurniture::Window:
                     g = new WindowItem(
                         selection->rect().x(),
                         selection->rect().y(),
-                        selection->rect().width(),
-                        selection->rect().height(),
-                        wallThickness,
-                        m_rotate
+                        wallTypeItemWidth,
+                        wallTypeItemHeight
                         );
                     break;
                 case BedroomFurniture::Door:
                     g = new DoorItem(
                         selection->rect().x(),
                         selection->rect().y(),
-                        selection->rect().width(),
-                        selection->rect().height(),
-                        wallThickness,
-                        m_rotate
+                        wallTypeItemWidth,
+                        wallTypeItemHeight
                         );
                     break;
                 case BedroomFurniture::Chair:
@@ -258,40 +283,32 @@ public:
                         selection->rect().x(),
                         selection->rect().y(),
                         chairItemWidth,
-                        chairItemHeight,
-                        chairParamSeat
+                        chairItemHeight
                         );
-                    if (m_rotate) g->repositionFromHorizont(selection->rect());
                     break;
                 case BedroomFurniture::Bed:
                     g = new BedItem(
                         selection->rect().x(),
                         selection->rect().y(),
                         bedItemWidth,
-                        bedItemHeight,
-                        bedParamHeight
+                        bedItemHeight
                         );
-                    if (m_rotate) g->repositionFromHorizont(selection->rect());
                     break;
                 case BedroomFurniture::Piano:
                     g = new PianoItem(
                         selection->rect().x(),
                         selection->rect().y(),
                         pianoItemWidth,
-                        pianoItemHeight,
-                        pianoParamHeight
+                        pianoItemHeight
                         );
-                    if (m_rotate) g->repositionFromHorizont(selection->rect());
                     break;
                 case BedroomFurniture::Desk:
                     g = new DeskItem(
                         selection->rect().x(),
                         selection->rect().y(),
                         deskItemWidth,
-                        deskItemHeight,
-                        deskParamHeight
+                        deskItemHeight
                         );
-                    if (m_rotate) g->repositionFromHorizont(selection->rect());
                     break;
                 case BedroomFurniture::Wardrobe:
                     g = new WardrobeItem(
@@ -300,7 +317,6 @@ public:
                         wardrobeItemWidth,
                         wardrobeItemHeight
                         );
-                    if (m_rotate) g->repositionFromHorizont(selection->rect());
                     break;
                 }
                 createItem();
@@ -322,6 +338,175 @@ public:
         }
         QGraphicsScene::mouseReleaseEvent(event);
     }
+    /* Сериализация */
+    void toXml(QString fileName) {
+
+        QFile file(fileName);
+        if (!file.open(QIODevice::WriteOnly)) {
+            emit updateInfoSignal("Ошибка при открытии файла " + fileName + " на запись.");
+            return;
+        }
+
+        QXmlStreamWriter out(&file);
+        out.setAutoFormatting(true);
+
+        out.writeStartDocument(); // Пишет xmlPrologue
+
+        out.writeStartElement("BedroomFurnitureItems");
+
+        for (const auto& it : this->items()) {
+
+            if (BedroomFurnitureItem* g = dynamic_cast<BedroomFurnitureItem*>(it))
+            {
+                out.writeStartElement("BedroomFurnitureItem");
+
+                out.writeAttribute(
+                    "t",
+                    QString::number(static_cast<int>(g->getType()))
+                    );
+                out.writeAttribute(
+                    "x",
+                    QString::number(g->getRect().x())
+                    );
+                out.writeAttribute(
+                    "y",
+                    QString::number(g->getRect().y())
+                    );
+                out.writeAttribute(
+                    "w",
+                    QString::number(g->getRect().width())
+                    );
+                out.writeAttribute(
+                    "h",
+                    QString::number(g->getRect().height())
+                    );
+                out.writeAttribute("f", QString::number(g->getIsHorizontal()));
+
+                double p = 0.0;
+                switch (g->getType()) {
+                case BedroomFurniture::Wall:
+                case BedroomFurniture::Window:
+                case BedroomFurniture::Door:
+                    p = WallTypeItem::getWallThickness();
+                    break;
+                case BedroomFurniture::Chair:
+                    p = ChairItem::getChairParamSeatSize();
+                    break;
+                case BedroomFurniture::Bed:
+                    p = BedItem::getBedParamHeight();
+                    break;
+                case BedroomFurniture::Piano:
+                    p = PianoItem::getPianoParamHeight();
+                    break;
+                case BedroomFurniture::Desk:
+                    p = DeskItem::getDeskParamHeight();
+                    break;
+                case BedroomFurniture::Wardrobe:
+                    p = WardrobeItem::getWardrobeParamHeight();
+                    break;
+                default:
+                    break;
+                }
+                out.writeAttribute("p", QString::number(p));
+
+                out.writeEndElement();
+            }
+        }
+
+        out.writeEndElement();
+
+        out.writeEndDocument();
+
+        emit updateInfoSignal("Схема успешно сохранена в файл");
+        emit updateFileNameSignal(fileName);
+        file.close();
+    }
+    void fromXml(QString fileName) {
+        QFile file(fileName);
+        if (!file.open(QIODevice::ReadOnly)) {
+            emit updateInfoSignal(
+                "Ошибка при открытии файла " + fileName + "на чтение."
+                );
+            return;
+        }
+
+        QByteArray data = file.readAll();
+        file.close();
+
+        QXmlStreamReader in(data);
+        g = nullptr;
+
+        bool isBedroomFurnitureItems = false;
+
+        on_clearSignal();
+
+        while(!in.atEnd()) {
+            QXmlStreamReader::TokenType token = in.readNext();
+
+            switch(token) {
+            case QXmlStreamReader::StartElement:
+                if (in.name().toString() == "BedroomFurnitureItems") {
+                    isBedroomFurnitureItems = true;
+                }
+                else if (in.name().toString() == "BedroomFurnitureItem" && isBedroomFurnitureItems && in.attributes().size() == 7) {
+                    BedroomFurniture t = static_cast<BedroomFurniture>
+                        (
+                            in.attributes().value("t").toInt()
+                            );
+
+                    double x = in.attributes().value("x").toDouble();
+                    double y = in.attributes().value("y").toDouble();
+                    double w = in.attributes().value("w").toDouble();
+                    double h = in.attributes().value("h").toDouble();
+                    double p = in.attributes().value("p").toDouble();
+                    m_rotate = in.attributes().value("f").toInt();
+
+                    switch (t) {
+                    case BedroomFurniture::Wall:
+                        setWallTypeItemSize(p);
+                        g = new WallItem(x, y, w, WindowItem::getWallThickness());
+                        break;
+                    case BedroomFurniture::Window:
+                        setWallTypeItemSize(p);
+                        g = new WindowItem(x, y, w, WindowItem::getWallThickness());
+                        break;
+                    case BedroomFurniture::Door:
+                        setWallTypeItemSize(p);
+                        WallTypeItem::setWallThickness(p);
+                        g = new DoorItem(x, y, w, WindowItem::getWallThickness());
+                        break;
+                    case BedroomFurniture::Chair:
+                        setChairItemSize(p);
+                        g = new ChairItem(x, y, chairItemWidth, chairItemHeight);
+                        break;
+                    case BedroomFurniture::Bed:
+                        setBedItemSize(p);
+                        g = new BedItem(x, y, bedItemWidth, bedItemHeight);
+                        break;
+                    case BedroomFurniture::Desk:
+                        setDeskItemSize(p);
+                        g = new DeskItem(x, y, deskItemWidth, deskItemHeight);
+                        break;
+                    case BedroomFurniture::Wardrobe:
+                        setWardrobeSize(p);
+                        g = new WardrobeItem(x, y, wardrobeItemWidth, wardrobeItemHeight);
+                        break;
+                    }
+                }
+                break;
+            case QXmlStreamReader::EndElement:
+                createItem();
+                break;
+            default:
+                break;
+            }
+        };
+        emit updateInfoSignal("Схема успешно загружена из файла");
+        emit updateFileNameSignal(fileName);
+    }
+
+    void toJson(QString);
+    void fromJson(QString);
 public slots:
     void on_enterHover() {
         if (m_erasing) {
@@ -336,7 +521,11 @@ public slots:
         }
     }
     void on_clearSignal() {
-        this->clear();
+        if (!this->items().empty()) {
+            this->clear();
+            createSelection();
+        }
+        emit updateInfoSignal("Создана новая схема");
     }
 
 signals:
@@ -352,6 +541,9 @@ signals:
     void erasingSignal();
     void erasedSignal();
 
+    void updateInfoSignal(QString);
+    void updateFileNameSignal(QString);
+
     void showToolTip(QPoint pos, QString text);
 
 private:
@@ -366,25 +558,21 @@ private:
     
     BedroomFurniture m_element;
 
-    double wallThickness;
+    double wallTypeItemWidth;
+    double wallTypeItemHeight;
 
-    double chairParamSeat;
     double chairItemWidth;
     double chairItemHeight;
 
-    double bedParamHeight;
     double bedItemWidth;
     double bedItemHeight;
 
-    double pianoParamHeight;
     double pianoItemWidth;
     double pianoItemHeight;
 
-    double deskParamHeight;
     double deskItemWidth;
     double deskItemHeight;
 
-    double wardrobeParamHeight;
     double wardrobeItemWidth;
     double wardrobeItemHeight;
 
@@ -392,25 +580,34 @@ private:
     bool m_rotate;
 
     /* Методы */
-    void computeChairSize() {
-        chairItemWidth = (23.0/15.0)*chairParamSeat;
-        chairItemHeight = 1.1*chairParamSeat;
+
+    void setWallTypeItemSize(double p) {
+        WallTypeItem::setWallThickness(p);
     }
-    void computeBedSize() {
-        bedItemWidth = 0.7*bedParamHeight;
-        bedItemHeight = bedParamHeight;
+    void setChairItemSize(double p) {
+        ChairItem::setChairParamSeatSize(p);
+        chairItemWidth = (23.0/15.0)*p;
+        chairItemHeight = 1.1*p;
     }
-    void computePianoSize() {
-        pianoItemWidth = 2.3*pianoParamHeight;
-        pianoItemHeight = 1.7*pianoParamHeight;
+    void setBedItemSize(double p) {
+        BedItem::setBedParamHeight(p);
+        bedItemWidth = 0.7*p;
+        bedItemHeight = p;
     }
-    void computeDeskSize() {
-        deskItemWidth = 3.0*deskParamHeight;
-        deskItemHeight = (5.0/3.0)*deskParamHeight;
+    void setPianoItemSize(double p) {
+        PianoItem::setPianoParamHeight(p);
+        pianoItemWidth = 2.3*p;
+        pianoItemHeight = 1.7*p;
     }
-    void computeWardrobeSize() {
-        wardrobeItemWidth = 2.5*wardrobeParamHeight;
-        wardrobeItemHeight = wardrobeParamHeight;
+    void setDeskItemSize(double p) {
+        DeskItem::setDeskParamHeight(p);
+        deskItemWidth = 3.0*p;
+        deskItemHeight = (5.0/3.0)*p;
+    }
+    void setWardrobeSize(double p) {
+        WardrobeItem::setWardrobeParamHeight(p);
+        wardrobeItemWidth = 2.5*p;
+        wardrobeItemHeight = p;
     }
 
     void createItem() {
@@ -420,27 +617,20 @@ private:
             connect(this, &GraphicsScene::erasingSignal, g, &BedroomFurnitureItem::on_erasingSignal);
             connect(this, &GraphicsScene::erasedSignal, g, &BedroomFurnitureItem::on_erasedSignal);
 
-            addItem(g);
+            this->addItem(g);
+            if (m_rotate)
+                g->rotateFromHorizontalToVertical();
+            this->update();
+            emit updateInfoSignal(
+                "На сцену успешно добавлен элемент; "
+                "x=" + QString::number(g->getRect().x()) +
+                ", y=" + QString::number(g->getRect().y()) +
+                ", w=" + QString::number(g->getRect().width()) +
+                ", h=" + QString::number(g->getRect().height()) +
+                " ;"
+                );
             g = nullptr;
         }
-    }
-    QSizeF determinePosition(double width, double itemParam, double itemWidth, double itemHeight)
-    {
-        QSizeF selectionSize;
-        if (width > itemParam)
-        {
-            selectionSize = QSizeF(
-                itemWidth, itemHeight
-                );
-            m_rotate = false;
-        }
-        else {
-            selectionSize = QSizeF(
-                itemHeight, itemWidth
-                );
-            m_rotate = true;
-        }
-        return selectionSize;
     }
     void resetDrawing() {
         switch (m_element) {
@@ -472,6 +662,11 @@ private:
             break;
         }
         m_element = BedroomFurniture::None;
+    }
+    void createSelection() {
+        selection = new QGraphicsRectItem();
+        addItem(selection);
+        selection->hide();
     }
 
 };

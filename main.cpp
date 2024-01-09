@@ -19,6 +19,7 @@ int main(int argc, char *argv[])
     }
     MainWindow w;
     w.resize(987, 610);
+    w.setWindowTitle("Редактор планировки спальни");
     w.show();
     return a.exec();
 }
